@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Game</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background: #f0f0f0;
+        }
+		        #countdown {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-size: 20px;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <h1>Multiplayer Game</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="countdown">Next Boss in: <span id="countdownValue">30</span> seconds</div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const playerSize = 20;
+        const playerColor = prompt("Choose a color for your player (e.g., 'blue', 'red'):");
+        const playerId = `player_${Math.random().toString(36).substr(2, 9)}`;
+
+        let playerX = Math.random() * canvas.width;
+        let playerY = Math.random() * canvas.height;
+
+        const players = {};
+
+        function drawPlayer(playerId, x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, playerSize, playerSize);
+        }
+// Additional code for health and mana bars
+function drawHealthAndManaBars(x, y, health, mana) {
+    // Draw health bar (red)
+    ctx.fillStyle = 'red';
+    ctx.fillRect(x, y - 15, health / 2, 5); // Width is proportional to health
+
+    // Draw mana bar (blue)
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(x, y - 10, mana / 2, 5); // Width is proportional to mana
+}
+
+// Update the drawPlayer function to include health and mana
+function drawPlayer(playerId, x, y, color, health = 100, mana = 100) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, playerSize, playerSize);
+
+    // Draw health and mana bars above the player
+    drawHealthAndManaBars(x, y, health, mana);
+}
+
+// Example boss object for demonstration
+const boss = {
+    x: 400,
+    y: 300,
+    health: 300,
+    maxHealth: 300,
+    mana: 100,
+    color: 'purple'
+};
+
+// Function to draw a boss with health and mana bars
+function drawBoss(boss) {
+    ctx.fillStyle = boss.color;
+    ctx.fillRect(boss.x, boss.y, playerSize * 2, playerSize * 2); // Boss is twice the size of a player
+    drawHealthAndManaBars(boss.x, boss.y, boss.health, boss.mana);
+}
+// Define items on the field
+const items = [
+    { x: 100, y: 150, type: 'Sword', color: 'silver' },
+    { x: 200, y: 250, type: 'Wand', color: 'goldenrod' }
+];
+
+// Function to draw items
+function drawItem(item) {
+    ctx.fillStyle = item.color;
+    ctx.fillRect(item.x, item.y, 12, 12); // Draw item as a small square
+}
+
+// Check for item collection
+function checkItemCollection() {
+    items.forEach((item, index) => {
+        if (
+            playerX < item.x + 12 &&
+            playerX + playerSize > item.x &&
+            playerY < item.y + 12 &&
+            playerY + playerSize > item.y
+        ) {
+            // Item collected, add to player's inventory
+            inventory.push(item);
+            items.splice(index, 1); // Remove item from field
+            updateInventory(); // Update the inventory display
+        }
+    });
+}
+
+// Update the updatePlayerPosition function to include item drawing
+function updatePlayerPosition() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    players[playerId] = { x: playerX, y: playerY, color: playerColor };
+
+    for (let id in players) {
+        const { x, y, color } = players[id];
+        drawPlayer(id, x, y, color);
+    }
+
+    // Draw items on the field
+    items.forEach(item => drawItem(item));
+
+    // Draw the boss
+    drawBoss(boss);
+}
+ // Function to handle player attacking the boss
+        function attackBoss() {
+            const distanceToBoss = Math.sqrt((boss.x - playerX) ** 2 + (boss.y - playerY) ** 2);
+            if (distanceToBoss < 50 && boss.health > 0) { // Check if player is close enough to hit the boss
+                boss.health -= 20; // Deal damage to the boss
+                if (boss.health <= 0) {
+                    boss.health = 0; // Prevent health from going negative
+                    bossDefeated(); // Call boss defeated function
+                }
+                updatePlayerPosition(); // Redraw canvas with updated boss health
+            }
+        }
+
+        // Function to handle what happens when the boss is defeated
+        function bossDefeated() {
+            alert('Boss defeated!');
+            dropItems(boss.x, boss.y); // Drop items at the boss's location
+            boss = null; // Remove the boss from the game
+
+            // Start the countdown for the next boss
+            startBossCountdown();
+        }
+
+        // Function to start the countdown for the next boss
+        function startBossCountdown() {
+            let countdown = 30; // Countdown starts from 30 seconds
+            countdownDiv.style.display = 'block'; // Show the countdown div
+
+            const countdownInterval = setInterval(() => {
+                countdownValue.textContent = countdown;
+                countdown--;
+
+                if (countdown < 0) {
+                    clearInterval(countdownInterval);
+                    countdownDiv.style.display = 'none'; // Hide the countdown div
+                    spawnNewBoss(); // Spawn a new boss after countdown reaches 0
+                }
+            }, 1000); // Decrease countdown every second
+        }
+
+        // Function to spawn a new boss at a random location
+        function spawnNewBoss() {
+            boss = {
+                x: Math.random() * (canvas.width - 100) + 50,
+                y: Math.random() * (canvas.height - 100) + 50,
+                health: 300,
+                maxHealth: 300,
+                mana: 100,
+                color: 'purple'
+            };
+            updatePlayerPosition(); // Update canvas with new boss
+            alert('A new boss has appeared!');
+        }
+
+        // Drop items at the boss's location when defeated
+        function dropItems(x, y) {
+            items.push(
+                { x: x + 20, y: y + 20, type: 'Shield', color: 'blue' },
+                { x: x - 20, y: y - 20, type: 'Chainmail', color: 'gray' }
+            );
+        }
+
+        canvas.addEventListener('click', attackBoss);
+
+        function sendPosition() {
+            fetch('update.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerId, x: playerX, y: playerY, color: playerColor })
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            switch (event.key) {
+                case 'ArrowUp':
+                    playerY = Math.max(0, playerY - 10);
+                    break;
+                case 'ArrowDown':
+                    playerY = Math.min(canvas.height - playerSize, playerY + 10);
+                    break;
+                case 'ArrowLeft':
+                    playerX = Math.max(0, playerX - 10);
+                    break;
+                case 'ArrowRight':
+                    playerX = Math.min(canvas.width - playerSize, playerX + 10);
+                    break;
+            }
+            sendPosition();
+            updatePlayerPosition();
+        });
+
+        function fetchPositions() {
+            fetch('players.txt')
+                .then(response => response.text())
+                .then(data => {
+                    const lines = data.split('\n');
+                    lines.forEach(line => {
+                        if (line.trim()) {
+                            const [id, x, y, color] = line.split(',');
+                            if (id !== playerId) {
+                                players[id] = { x: parseFloat(x), y: parseFloat(y), color };
+                            }
+                        }
+                    });
+                    updatePlayerPosition();
+                });
+        }
+
+        window.addEventListener('beforeunload', () => {
+            fetch('player_leave.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerId })
+            });
+        });
+
+        sendPosition();
+        fetchPositions();
+        setInterval(fetchPositions, 200);
+    </script>
+</body>
+</html>
