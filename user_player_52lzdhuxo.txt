@@ -1,0 +1,1 @@
+{"inventory":[],"location":{"x":4.11864774849073,"y":227.0888192592364},"online_status":true,"health":100,"mana":100}

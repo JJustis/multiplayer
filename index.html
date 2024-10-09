@@ -4,30 +4,193 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multiplayer Game</title>
+    <!-- Include Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        canvas {
-            border: 1px solid black;
-            background: #f0f0f0;
+        body {
+            background: #2b2b2b; /* Dark background to mimic a game environment */
+            color: #ddd;
         }
-		        #countdown {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.8);
+        #gameContainer {
+            background: #333; /* Dark background for the game area */
+            border: 2px solid #444;
             padding: 10px;
-            border: 1px solid #ccc;
-            font-size: 20px;
-            display: none; /* Hidden by default */
+        }
+        canvas {
+            background: #000;
+            border: 2px solid #444;
+        }
+        .panel {
+            background: #444;
+            border: 1px solid #555;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        #inventory {
+            background: #222;
+            color: #ddd;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            height: 200px;
+            overflow-y: auto; /* Scrollable */
+        }
+        #countdown {
+            background: #222;
+            color: #ddd;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        #sidePanel {
+            background: #222;
+            border: 2px solid #444;
+            border-radius: 8px;
+            height: 600px; /* Match the canvas height */
+           
+            overflow-y: auto; /* Scrollable */
+        }
+        #sidePanel h2, #sidePanel h4 {
+            color: #eee;
+        }
+        .navbar {
+            background: #1e1e1e;
+            border-bottom: 2px solid #444;
+        }
+        .navbar-brand {
+            color: #f0ad4e; /* Gold-like color for branding */
+        }
+        /* Styles for item lore text */
+        .lore-name {
+            color: #ffcc00; /* Gold color for item name */
+            font-weight: bold;
+        }
+        .lore-description {
+            color: #88ccff; /* Light blue color for item description */
+        }
+        .lore-origin {
+            color: #cc88ff; /* Light purple color for origin text */
+        }
+        /* Style for item chat bubbles */
+        .chat-bubble {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            max-width: 200px;
+            text-align: center;
+            display: none;
+        }
+		        /* Styles for session duration input */
+        #sessionInput {
+            margin: 15px 0;
+            width: 100%;
+        }
+        /* Styles for animations */
+        .slash {
+            stroke: white;
+            stroke-width: 5;
+            stroke-linecap: round;
         }
     </style>
 </head>
 <body>
-    <h1>Multiplayer Game</h1>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="countdown">Next Boss in: <span id="countdownValue">30</span> seconds</div>
+    <!-- Navbar for the game -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <a class="navbar-brand" href="#">RuneScape-like Game</a>
+    </nav>
+
+    <!-- Main Container for the Game Layout -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Panel for Inventory and Stats -->
+            <div class="col-md-3">
+                <div id="sidePanel" class="panel">
+                    <h2 class="panel-title">Player Inventory</h2>
+                    <div id="inventory">Inventory:<br><ul id="inventoryList"></ul></div>
+                    <h4 class="panel-title">Player Stats</h4>
+                    <div id="playerStats">
+                        <p>Health: <span id="playerHealth">100</span></p>
+                        <p>Mana: <span id="playerMana">100</span></p>
+                        <p>Attack: <span id="playerAttackStat">10</span></p>
+                        <p>Defense: <span id="playerDefenseStat">5</span></p>
+                    </div>
+                    <div id="countdown">Next Boss in: <span id="countdownValue">30</span> seconds</div>
+                </div>
+            </div>
+
+            <!-- Center Panel for the Game Canvas -->
+            <div class="col-md-6 text-center">
+                <div id="gameContainer">
+                    <canvas id="gameCanvas" width="800" height="600"></canvas>
+                    <input type="file" id="imageUploader" accept="image/*" class="btn btn-warning mt-3" title="Upload Player Image" />
+                </div>
+            </div>
+
+ <div class="col-md-3">
+                <div id="sidePanel" class="panel">
+                    <h2 class="panel-title">Session Settings</h2>
+                    <p>Set session time (in minutes):</p>
+                    <input type="number" id="sessionInput" class="form-control" value="30" placeholder="e.g., 30">
+                    <button id="startSession" class="btn btn-success mt-2">Start Session</button>
+                    <h2 class="panel-title mt-4">Game Chat</h2>
+                    <div id="gameChat" style="background: #333; padding: 10px; border-radius: 8px;">
+                        <!-- Chat messages will be displayed here -->
+                    </div>
+                    <input type="text" id="chatInput" class="form-control mt-3" placeholder="Type your message here...">
+                    <button id="sendChat" class="btn btn-success mt-2">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Trade Window -->
+    <div id="tradeWindow">
+        <h2>Trade Window</h2>
+        <div class="trade-panel">
+            <h4>Your Items</h4>
+            <div id="tradeInventory1">Your Trade:<br><ul id="yourTradeList"></ul></div>
+        </div>
+        <div class="trade-panel">
+            <h4>Other Player's Items</h4>
+            <div id="tradeInventory2">Other Trade:<br><ul id="otherTradeList"></ul></div>
+        </div>
+        <button id="confirmTrade" class="btn btn-success">Confirm Trade</button>
+        <button id="cancelTrade" class="btn btn-danger">Cancel Trade</button>
+    </div>
+
+    <!-- Chat Bubble for Item Lore -->
+    <div id="itemChatBubble" class="chat-bubble"></div>
+    <!-- Include Bootstrap JS and Dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const inventoryList = document.getElementById('inventoryList');
+		        const tradeWindow = document.getElementById('tradeWindow');
+        const yourTradeList = document.getElementById('yourTradeList');
+        const otherTradeList = document.getElementById('otherTradeList');
+        const confirmTradeButton = document.getElementById('confirmTrade');
+        const cancelTradeButton = document.getElementById('cancelTrade');
+        const countdownDiv = document.getElementById('countdown');
+        const countdownValue = document.getElementById('countdownValue');
+        const imageUploader = document.getElementById('imageUploader');
+		const chatInput = document.getElementById('chatInput');
+        const sendChat = document.getElementById('sendChat');
+        const gameChat = document.getElementById('gameChat');
+		const itemChatBubble = document.getElementById('itemChatBubble');
+const startSession = document.getElementById('startSession');
+        const sessionInput = document.getElementById('sessionInput');
+
 
         const playerSize = 20;
         const playerColor = prompt("Choose a color for your player (e.g., 'blue', 'red'):");
@@ -37,97 +200,319 @@
         let playerY = Math.random() * canvas.height;
 
         const players = {};
+        const inventory = [];
+        const equippedItems = { weapon: null, armor: null }; // Track equipped items
+		let tradePartner = null;  // Current trade partner ID
+let isInTrade = false;    // Flag to indicate if the player is in a trade
+const yourTradeItems = [];  // Items you're offering for trade
+const otherTradeItems = []; // Items your partner is offering for trade
+		const fireballs = [];  // Store active fireballs
+        let playerImage = null; // Store the player's custom image
+        let playerAttack = 10;  // Default attack value
+        let playerDefense = 5;  // Default defense value
 
-        function drawPlayer(playerId, x, y, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, playerSize, playerSize);
-        }
-// Additional code for health and mana bars
-function drawHealthAndManaBars(x, y, health, mana) {
-    // Draw health bar (red)
-    ctx.fillStyle = 'red';
-    ctx.fillRect(x, y - 15, health / 2, 5); // Width is proportional to health
+        // Change the boss variable to 'let' so it can be reassigned
+        let boss = {
+            x: 400,
+            y: 300,
+            health: 300,
+            maxHealth: 300,
+            mana: 100,
+            color: 'purple'
+        };
 
-    // Draw mana bar (blue)
-    ctx.fillStyle = 'blue';
-    ctx.fillRect(x, y - 10, mana / 2, 5); // Width is proportional to mana
-}
-
-// Update the drawPlayer function to include health and mana
 function drawPlayer(playerId, x, y, color, health = 100, mana = 100) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, playerSize, playerSize);
-
-    // Draw health and mana bars above the player
-    drawHealthAndManaBars(x, y, health, mana);
-}
-
-// Example boss object for demonstration
-const boss = {
-    x: 400,
-    y: 300,
-    health: 300,
-    maxHealth: 300,
-    mana: 100,
-    color: 'purple'
-};
-
-// Function to draw a boss with health and mana bars
-function drawBoss(boss) {
-    ctx.fillStyle = boss.color;
-    ctx.fillRect(boss.x, boss.y, playerSize * 2, playerSize * 2); // Boss is twice the size of a player
-    drawHealthAndManaBars(boss.x, boss.y, boss.health, boss.mana);
-}
-// Define items on the field
-const items = [
-    { x: 100, y: 150, type: 'Sword', color: 'silver' },
-    { x: 200, y: 250, type: 'Wand', color: 'goldenrod' }
-];
-
-// Function to draw items
-function drawItem(item) {
-    ctx.fillStyle = item.color;
-    ctx.fillRect(item.x, item.y, 12, 12); // Draw item as a small square
-}
-
-// Check for item collection
-function checkItemCollection() {
-    items.forEach((item, index) => {
-        if (
-            playerX < item.x + 12 &&
-            playerX + playerSize > item.x &&
-            playerY < item.y + 12 &&
-            playerY + playerSize > item.y
-        ) {
-            // Item collected, add to player's inventory
-            inventory.push(item);
-            items.splice(index, 1); // Remove item from field
-            updateInventory(); // Update the inventory display
+            if (playerImage) {
+                ctx.drawImage(playerImage, x, y, playerSize, playerSize);
+            } else {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, playerSize, playerSize);
+            }
+            drawHealthAndManaBars(x, y, health, mana);
         }
-    });
-}
 
-// Update the updatePlayerPosition function to include item drawing
-function updatePlayerPosition() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    players[playerId] = { x: playerX, y: playerY, color: playerColor };
 
-    for (let id in players) {
-        const { x, y, color } = players[id];
-        drawPlayer(id, x, y, color);
-    }
 
-    // Draw items on the field
-    items.forEach(item => drawItem(item));
+        // Function to draw a boss with health and mana bars
+        function drawBoss(boss) {
+            if (boss) { // Draw only if the boss exists
+                ctx.fillStyle = boss.color;
+                ctx.fillRect(boss.x, boss.y, playerSize * 2, playerSize * 2); // Boss is twice the size of a player
+                drawHealthAndManaBars(boss.x, boss.y, boss.health, boss.mana);
+            }
+        }
 
-    // Draw the boss
-    drawBoss(boss);
-}
- // Function to handle player attacking the boss
+        // Define items on the field
+        const items = [
+            { x: 100, y: 150, type: 'Sword', color: 'silver' },
+            { x: 200, y: 250, type: 'Wand', color: 'goldenrod' }
+        ];
+
+        function drawItem(item) {
+            ctx.fillStyle = item.color;
+            ctx.fillRect(item.x, item.y, 12, 12); // Draw item as a small square
+        }
+
+        function checkItemCollection() {
+            items.forEach((item, index) => {
+                if (
+                    playerX < item.x + 12 &&
+                    playerX + playerSize > item.x &&
+                    playerY < item.y + 12 &&
+                    playerY + playerSize > item.y
+                ) {
+                    // Item collected, add to player's inventory
+                    inventory.push(item);
+                    items.splice(index, 1); // Remove item from field
+                    updateInventory(); // Update the inventory display
+                }
+            });
+        }
+  // Draw fireballs on canvas
+        function drawFireballs() {
+            fireballs.forEach((fireball, index) => {
+                ctx.fillStyle = 'orange';
+                ctx.beginPath();
+                ctx.arc(fireball.x, fireball.y, 5, 0, 2 * Math.PI); // Fireball is a small circle
+                ctx.fill();
+
+                // Move fireball in its trajectory
+                fireball.x += fireball.dx;
+                fireball.y += fireball.dy;
+
+                // Remove fireball if it goes out of bounds
+                if (fireball.x < 0 || fireball.x > canvas.width || fireball.y < 0 || fireball.y > canvas.height) {
+                    fireballs.splice(index, 1);
+                }
+
+                // Check collision with boss
+                if (boss && fireball.x > boss.x && fireball.x < boss.x + playerSize * 2 &&
+                    fireball.y > boss.y && fireball.y < boss.y + playerSize * 2) {
+                    boss.health -= 15; // Deal damage to boss
+                    fireballs.splice(index, 1); // Remove fireball after collision
+                    bossDodge(fireball); // Make the boss dodge after getting hit
+                    if (boss.health <= 0) {
+                        boss.health = 0;
+                        bossDefeated(); // Call boss defeated function
+                    }
+                }
+            });
+        }
+
+        // Make the boss dodge slightly when hit by a fireball
+        function bossDodge(fireball) {
+            const dodgeDistance = 30; // Distance the boss will move to dodge
+
+            if (fireball.dx > 0) {
+                boss.x -= dodgeDistance; // Move left if fireball is coming from right
+            } else {
+                boss.x += dodgeDistance; // Move right if fireball is coming from left
+            }
+
+            if (fireball.dy > 0) {
+                boss.y -= dodgeDistance; // Move up if fireball is coming from below
+            } else {
+                boss.y += dodgeDistance; // Move down if fireball is coming from above
+            }
+
+            // Ensure boss doesn't move out of bounds
+            boss.x = Math.max(0, Math.min(canvas.width - playerSize * 2, boss.x));
+            boss.y = Math.max(0, Math.min(canvas.height - playerSize * 2, boss.y));
+        }
+        function updateInventory() {
+            inventoryList.innerHTML = ''; // Clear the current inventory display
+
+            // Loop through each item in the inventory and create a list item
+            inventory.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${item.type}`;
+                li.style.color = item.color;
+                li.style.cursor = 'pointer';
+
+                // When an item is clicked, equip it
+                li.addEventListener('click', () => equipItem(index));
+
+                // Append the item to the inventory list display
+                inventoryList.appendChild(li);
+            });
+        }
+		 // Function to set session cookie
+        function setSessionCookie(duration) {
+            const date = new Date();
+            date.setTime(date.getTime() + (duration * 60 * 1000)); // Convert minutes to milliseconds
+            document.cookie = `session=${playerId}; expires=${date.toUTCString()}; path=/`;
+            alert(`Session started for ${duration} minutes.`);
+        }
+
+        // Start session based on user input
+        startSession.addEventListener('click', () => {
+            const sessionTime = parseInt(sessionInput.value) || 30; // Default to 30 minutes
+            setSessionCookie(sessionTime);
+        });
+
+        // Function to draw items worn on player
+        function drawWornItems(playerX, playerY) {
+            // Draw equipped weapon
+            if (equippedItems.weapon) {
+                ctx.fillStyle = equippedItems.weapon.color;
+                ctx.fillRect(playerX + playerSize / 2, playerY + playerSize / 2, 10, 10); // Draw a small square for weapon
+            }
+            // Draw equipped armor, shield, etc. in a similar way
+        }
+
+        // Function to draw a slash animation
+        function drawSlash(startX, startY, endX, endY) {
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // Remove the slash after a short delay
+            setTimeout(() => {
+                ctx.clearRect(startX - 10, startY - 10, endX - startX + 20, endY - startY + 20);
+                updatePlayerPosition(); // Redraw canvas to remove slash
+            }, 200);
+        }
+
+        // Function to draw a stab animation
+        function drawStab(startX, startY, targetX, targetY) {
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(targetX, targetY);
+            ctx.stroke();
+
+            // Remove the stab after a short delay
+            setTimeout(() => {
+                ctx.clearRect(startX - 10, startY - 10, targetX - startX + 20, targetY - startY + 20);
+                updatePlayerPosition(); // Redraw canvas to remove stab
+            }, 200);
+        }
+        // Function to draw attack animations
+  
+        function equipItem(index) {
+            const item = inventory[index]; // Get the item from the inventory based on its index
+
+            // Equip item based on its type
+            if (item.type === 'Sword' || item.type === 'Wand') {
+                equippedItems.weapon = item; // Equip weapon
+                playerAttack = item.type === 'Sword' ? 20 : 15; // Update player attack based on weapon type
+            } else if (item.type === 'Shield' || item.type === 'Chainmail') {
+                equippedItems.armor = item; // Equip armor
+                playerDefense = item.type === 'Shield' ? 15 : 25; // Update player defense based on armor type
+            }
+
+            // Remove item from inventory after equipping
+            inventory.splice(index, 1);
+            updateInventory(); // Update inventory display
+
+            alert(`Equipped ${item.type}! Attack: ${playerAttack}, Defense: ${playerDefense}`);
+        }
+function generateRandomItem() {
+            const prefixes = ["Dante's", "Mystic", "Ancient", "Ethereal", "Legendary", "Cursed", "Blessed"];
+            const baseNames = ["Sword", "Wand", "Shield", "Bow", "Staff", "Hammer", "Axe"];
+            const suffixes = ["of Power", "of Wisdom", "of Fury", "of the Ancients", "of Fire", "of Shadows", "of Light"];
+
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const baseName = baseNames[Math.floor(Math.random() * baseNames.length)];
+            const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+
+            const itemName = `${prefix} ${baseName} ${suffix}`;
+            const itemLore = `This ${baseName} is said to be ${Math.random() > 0.5 ? 'forged in the flames of the underworld' : 'blessed by the celestial gods.'} It is known to ${Math.random() > 0.5 ? 'cut through the hardest steel' : 'deflect even the most powerful spells.'}`;
+
+            return {
+                name: itemName,
+                lore: itemLore,
+                type: baseName.toLowerCase(),
+                color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Random color for each item
+                x: Math.random() * (canvas.width - 50) + 25, // Random position on canvas
+                y: Math.random() * (canvas.height - 50) + 25
+            };
+        }
+
+        // Create a few initial items with random properties
+        for (let i = 0; i < 5; i++) {
+            const item = generateRandomItem();
+            items.push(item);
+        }
+		 function drawItem(item) {
+            ctx.fillStyle = item.color;
+            ctx.fillRect(item.x, item.y, 12, 12); // Draw item as a small square
+        }
+
+        // Show item lore in a chat bubble above the item
+        function showItemLore(item) {
+            itemChatBubble.style.left = `${item.x + 20}px`;
+            itemChatBubble.style.top = `${item.y - 30}px`;
+            itemChatBubble.textContent = `${item.name}: ${item.lore}`;
+            itemChatBubble.style.display = 'block';
+        }
+
+        // Hide the item chat bubble
+        function hideItemLore() {
+            itemChatBubble.style.display = 'none';
+        }
+
+        // Draw all items and show lore when hovered
+        canvas.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            let itemHovered = false;
+            items.forEach(item => {
+                if (mouseX > item.x && mouseX < item.x + 12 && mouseY > item.y && mouseY < item.y + 12) {
+                    showItemLore(item);
+                    itemHovered = true;
+                }
+            });
+
+            if (!itemHovered) {
+                hideItemLore();
+            }
+        });
+
+ function updatePlayerPosition() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            players[playerId] = { x: playerX, y: playerY, color: playerColor };
+
+            for (let id in players) {
+                const { x, y, color } = players[id];
+                drawPlayer(id, x, y, color);
+				 drawWornItems(x, y);
+            }
+
+            // Draw items on the field
+            items.forEach(item => drawItem(item));
+        drawFireballs();
+            drawBoss(boss);
+        }
+
+        // Handle image upload for custom player appearance
+        imageUploader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    playerImage = img;
+                    updatePlayerPosition(); // Update canvas with new player image
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Function to handle player attacking the boss
         function attackBoss() {
             const distanceToBoss = Math.sqrt((boss.x - playerX) ** 2 + (boss.y - playerY) ** 2);
             if (distanceToBoss < 50 && boss.health > 0) { // Check if player is close enough to hit the boss
-                boss.health -= 20; // Deal damage to the boss
+                boss.health -= playerAttack; // Deal damage based on player's attack value
                 if (boss.health <= 0) {
                     boss.health = 0; // Prevent health from going negative
                     bossDefeated(); // Call boss defeated function
@@ -185,7 +570,45 @@ function updatePlayerPosition() {
             );
         }
 
-        canvas.addEventListener('click', attackBoss);
+        // Shoot fireball towards the mouse position
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            // Check if player clicked on any items on the field
+            items.forEach((item, index) => {
+                if (
+                    mouseX > item.x && mouseX < item.x + 12 &&
+                    mouseY > item.y && mouseY < item.y + 12
+                ) {
+                    // Collect the item if clicked
+                    inventory.push(item);
+                    items.splice(index, 1); // Remove item from field
+                    updateInventory();
+                    updatePlayerPosition(); // Redraw canvas
+                    alert(`You picked up: ${item.name}`);
+                }
+            });
+            // Check if player has wand equipped
+            if (equippedItems.weapon && equippedItems.weapon.type === 'Wand') {
+                const angle = Math.atan2(mouseY - playerY, mouseX - playerX);
+                const fireballSpeed = 5;
+                fireballs.push({
+                    x: playerX + playerSize / 2,
+                    y: playerY + playerSize / 2,
+                    dx: fireballSpeed * Math.cos(angle),
+                    dy: fireballSpeed * Math.sin(angle)
+                });
+            } else {
+                // Default behavior: attack boss
+                attackBoss();
+            }
+
+            updatePlayerPosition();
+        });
+
+
+        updatePlayerPosition();
 
         function sendPosition() {
             fetch('update.php', {
@@ -212,8 +635,17 @@ function updatePlayerPosition() {
             }
             sendPosition();
             updatePlayerPosition();
+            checkItemCollection(); // Check for item collection
         });
-
+        // Function to draw items worn on player
+        function drawWornItems(playerX, playerY) {
+            // Draw equipped weapon
+            if (equippedItems.weapon) {
+                ctx.fillStyle = equippedItems.weapon.color;
+                ctx.fillRect(playerX + playerSize / 2, playerY + playerSize / 2, 10, 10); // Draw a small square for weapon
+            }
+            // Draw equipped armor, shield, etc. in a similar way
+        }
         function fetchPositions() {
             fetch('players.txt')
                 .then(response => response.text())
@@ -238,7 +670,231 @@ function updatePlayerPosition() {
                 body: JSON.stringify({ playerId })
             });
         });
+        // Load existing chat messages on page load
+        function loadChatMessages() {
+            fetch('load_messages.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayChatMessages(data.messages);
+                    }
+                })
+                .catch(error => console.error('Error loading messages:', error));
+        }
 
+        // Display chat messages in the chat window
+        function displayChatMessages(messages) {
+            gameChat.innerHTML = ''; // Clear existing messages
+            messages.forEach(msg => {
+                const chatMessage = document.createElement('p');
+                chatMessage.textContent = `[${msg.timestamp}] ${msg.playerId}: ${msg.content}`;
+                gameChat.appendChild(chatMessage);
+            });
+            gameChat.scrollTop = gameChat.scrollHeight; // Scroll to bottom
+        }
+
+        // Send a new chat message to the server
+        function sendChatMessage() {
+            const messageContent = chatInput.value.trim();
+            if (messageContent === '') return;
+
+            const message = {
+                playerId: playerId,
+                content: messageContent,
+                timestamp: new Date().toLocaleTimeString()
+            };
+
+            fetch('save_message.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(message)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        chatInput.value = ''; // Clear input field
+                        loadChatMessages(); // Reload messages
+                    }
+                })
+                .catch(error => console.error('Error sending message:', error));
+        }
+		// Function to update inventory display
+function updateInventory() {
+    inventoryList.innerHTML = ''; // Clear the current inventory display
+
+    // Loop through each item in the inventory and create a list item
+    inventory.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${item.name || item.type}`;  // Display item name or type
+        li.style.color = item.color;
+        li.style.cursor = 'pointer';
+
+        // Add click event handler based on the current context (trading or not)
+        li.addEventListener('click', () => {
+            if (isInTrade) {
+                // If in a trade, add the item to the trade slot
+                addItemToTrade(index);
+            } else {
+                // If not in a trade, equip the item
+                equipItem(index);
+            }
+        });
+
+        // Append the item to the inventory list display
+        inventoryList.appendChild(li);
+    });
+}
+
+// Function to add an item to the trade window
+function addItemToTrade(index) {
+    const item = inventory[index];
+    if (!yourTradeItems.includes(item)) {
+        yourTradeItems.push(item);       // Add item to your trade list
+        inventory.splice(index, 1);      // Remove item from your inventory
+        updateInventory();               // Update inventory display
+        updateTradeDisplay();            // Update trade display
+    }
+}
+// Function to handle item equipping
+function equipItem(index) {
+    const item = inventory[index];
+ isInTrade = false 
+    // Equip item based on its type
+    if (item.type === 'Sword' || item.type === 'Wand') {
+        equippedItems.weapon = item; // Equip weapon
+        playerAttack = item.type === 'Sword' ? 20 : 15; // Update player attack based on weapon type
+    } else if (item.type === 'Shield' || item.type === 'Chainmail') {
+        equippedItems.armor = item; // Equip armor
+        playerDefense = item.type === 'Shield' ? 15 : 25; // Update player defense based on armor type
+    }
+
+    // Remove item from inventory after equipping
+    inventory.splice(index, 1);
+    updateInventory(); // Update inventory display
+
+    alert(`Equipped ${item.type}! Attack: ${playerAttack}, Defense: ${playerDefense}`);
+}
+
+// Function to update trade display
+function updateTradeDisplay() {
+    // Update your trade list
+    yourTradeList.innerHTML = ''; // Clear your trade list
+    yourTradeItems.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.name}`;
+        li.style.color = item.color;
+        yourTradeList.appendChild(li);
+    });
+
+    // Update your partner's trade list
+    otherTradeList.innerHTML = ''; // Clear other player's trade list
+    otherTradeItems.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.name}`;
+        li.style.color = item.color;
+        otherTradeList.appendChild(li);
+    });
+}
+
+// Initiate a trade with another player
+function initiateTrade(partnerId) {
+    if (tradePartner) {
+        alert("Already in a trade!");
+        return;
+    }
+    tradePartner = partnerId;
+    isInTrade = true;  // Set the trade flag
+    alert(`Trade request sent to ${partnerId}. Waiting for response...`);
+
+    // Display trade window for both players when the trade is accepted
+    setTimeout(() => {
+        if (confirm(`Player ${partnerId} wants to trade with you. Do you accept?`)) {
+            tradeWindow.style.display = 'block';
+            updateTradeDisplay();  // Show trade window and update displays
+        } else {
+            tradePartner = null;
+            isInTrade = false;
+            alert("Trade declined.");
+        }
+    }, 1000); // Simulate delay for trade acceptance
+}
+
+// Confirm trade and swap items between players
+confirmTradeButton.addEventListener('click', () => {
+    // Swap items between players
+    yourTradeItems.forEach(item => otherTradeItems.push(item));
+    otherTradeItems.forEach(item => inventory.push(item));
+
+    // Clear trade windows and reset variables
+    yourTradeItems.length = 0;
+    otherTradeItems.length = 0;
+    tradePartner = null;
+    isInTrade = false;
+    tradeWindow.style.display = 'none';
+    updateInventory();
+    alert("Trade completed successfully!");
+});
+
+// Cancel the trade and return items to inventories
+cancelTradeButton.addEventListener('click', () => {
+    // Return items to inventories
+    yourTradeItems.forEach(item => inventory.push(item));
+    yourTradeItems.length = 0;
+    otherTradeItems.length = 0;
+    tradePartner = null;
+    isInTrade = false;
+    tradeWindow.style.display = 'none';
+    updateInventory();
+    alert("Trade canceled.");
+});
+
+// Click handler on canvas to initiate trade with another player
+
+        function drawHealthAndManaBars(x, y, health, mana) {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(x, y - 15, health / 2, 5);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(x, y - 10, mana / 2, 5);
+        }
+
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+ for (let id in players) {
+                if (id !== playerId) {
+                    const { x, y } = players[id];
+                    if (mouseX >= x && mouseX <= x + playerSize && mouseY >= y && mouseY <= y + playerSize) {
+                        // Initiate trade with the clicked player
+                        initiateTrade(id);
+                        break;
+                    }
+                }
+            }
+			
+            // Check if a sword is equipped
+            if (equippedItems.weapon && equippedItems.weapon.type === 'Sword') {
+                const distanceToMouse = Math.sqrt((mouseX - playerX) ** 2 + (mouseY - playerY) ** 2);
+                if (distanceToMouse < 50) {
+                    drawSlash(playerX + playerSize / 2, playerY + playerSize / 2, mouseX, mouseY); // Draw slash animation
+                } else {
+                    drawStab(playerX + playerSize / 2, playerY + playerSize / 2, mouseX, mouseY); // Draw stab animation
+                }
+            }
+        });
+
+        // Load chat messages when the page loads
+        loadChatMessages();
+
+        // Add event listener to the send button
+        sendChat.addEventListener('click', sendChatMessage);
+
+        // Send chat message on Enter key press
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
         sendPosition();
         fetchPositions();
         setInterval(fetchPositions, 200);
